@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Przepis kulinarny</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        
+        .recipe-container {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #d35400;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .recipe-meta {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 25px;
+            color: #777;
+            font-size: 14px;
+            border-bottom: 1px dashed #ddd;
+            padding-bottom: 15px;
+        }
+        
+        .recipe-meta div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        h2 {
+            margin-top: 30px;
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 5px;
+        }
+        
+        .ingredients-list {
+            list-style-type: none;
+            padding-left: 5px;
+        }
+        
+        .ingredients-list li {
+            margin-bottom: 8px;
+            padding-left: 25px;
+            position: relative;
+        }
+        
+        .ingredients-list li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #d35400;
+            font-size: 20px;
+            line-height: 20px;
+        }
+        
+        .steps-list {
+            counter-reset: step-counter;
+            list-style-type: none;
+            padding-left: 5px;
+        }
+        
+        .steps-list li {
+            margin-bottom: 20px;
+            padding-left: 40px;
+            position: relative;
+        }
+        
+        .steps-list li:before {
+            content: counter(step-counter);
+            counter-increment: step-counter;
+            position: absolute;
+            left: 0;
+            background-color: #d35400;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .tips {
+            background-color: #fef5e7;
+            padding: 15px;
+            border-left: 4px solid #d35400;
+            margin-top: 30px;
+        }
+        
+        .servings-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+        
+        .servings-control button {
+            width: 30px;
+            height: 30px;
+            background-color: #d35400;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #servings-display {
+            font-weight: bold;
+            min-width: 30px;
+            text-align: center;
+        }
+        
+        button.download-btn {
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            display: block;
+            margin: 30px auto 0;
+            transition: background-color 0.3s;
+        }
+        
+        button.download-btn:hover {
+            background-color: #1a2530;
+        }
+        
+        .checkbox-container {
+            margin-bottom: 8px;
+        }
+        
+        .checkbox-container input {
+            margin-right: 8px;
+        }
+        
+        @media (max-width: 600px) {
+            .recipe-meta {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .recipe-meta div {
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="recipe-container" id="recipe-content">
+        <h1>Placki ziemniaczane z sosem grzybowym</h1>
+        
+        <div class="recipe-meta">
+            <div>
+                <span>⏱️ Czas przygotowania</span>
+                <strong>30 minut</strong>
+            </div>
+            <div>
+                <span>🍽️ Porcje</span>
+                <strong id="servings-count">4</strong>
+            </div>
+            <div>
+                <span>⭐ Poziom trudności</span>
+                <strong>Łatwy</strong>
+            </div>
+        </div>
+        
+        <div class="servings-control">
+            <span>Dostosuj liczbę porcji:</span>
+            <button id="decrease-servings">-</button>
+            <span id="servings-display">4</span>
+            <button id="increase-servings">+</button>
+        </div>
+        
+        <h2>Składniki na placki ziemniaczane:</h2>
+        <ul class="ingredients-list" id="ingredients-list">
+            <li><span class="checkbox-container"><input type="checkbox" id="ing1"><label for="ing1"><span class="quantity" data-base="1">1</span> kg ziemniaków</label></span></li>
+            <li><span class="checkbox-container"><input type="checkbox" id="ing2"><label for="ing2"><span class="quantity" data-base="1">1</span> cebula</label></span></li>
+            <li><span class="checkbox-container"><input type="checkbox" id="ing3"><label for="ing3"><span class="quantity" data-base="2">2</span> jajka</label></span></li>
+            <li><span class="checkbox-container"><input type="checkbox" id="ing4"><label for="ing4"><span class="quantity" data-base="3">3</span> łyżki mąki pszennej</label></span></li>
+            <li><span class="checkbox-container"><input type="checkbox" id="ing5"><label for="ing5">Sól i pieprz do smaku</label></span></li>
+            <li><span class="checkbox-container"><input type="checkbox" id="ing6"><label for="ing6">Olej do smażenia</label></span></li>
+        </ul>
+        
+        <h2>Składniki na sos grzybowy:</h2>
+        <ul class="ingredients-list">
+            <li><span class="checkbox-container"><input type="checkbox" id="ing7"><label for="ing7"><span class="quantity" data-base="300">300</span> g grzybów leśnych lub pieczarek</label></span></li>
+            <li><span class="checkbox-container"><input type="checkbox" id="ing8"><label for="ing8"><span class="quantity" data-base="1">1</span> cebula</label></span></li>
+            <li><span class="checkbox-container"><input type="checkbox" id="ing9"><label for="ing9"><span class="quantity" data-base="200">200</span> ml śmietany 18%</label></span></li>
+            <li><span class="checkbox-container"><input type="checkbox" id="ing10"><label for="ing10"><span class="quantity" data-base="1">1</span> łyżka masła</label></span></li>
+            <li><span class="checkbox-container"><input type="checkbox" id="ing11"><label for="ing11"><span class="quantity" data-base="1">1</span> łyżka mąki</label></span></li>
+            <li><span class="checkbox-container"><input type="checkbox" id="ing12"><label for="ing12">Sól, pieprz, tymianek</label></span></li>
+        </ul>
+        
+        <h2>Przygotowanie placków ziemniaczanych:</h2>
+        <ol class="steps-list">
+            <li>Ziemniaki obierz i zetrzyj na tarce o drobnych oczkach.</li>
+            <li>Odciśnij nadmiar wody z ziemniaków przez sito lub gazę.</li>
+            <li>Cebulę drobno posiekaj i dodaj do ziemniaków.</li>
+            <li>Dodaj jajka, mąkę, sól i pieprz. Dokładnie wymieszaj na jednolitą masę.</li>
+            <li>Na patelni rozgrzej olej i nakładaj po łyżce masy ziemniaczanej.</li>
+            <li>Smaż placki na złoto-brązowy kolor z obu stron (około 3-4 minuty z każdej strony).</li>
+            <li>Gotowe placki odsącz na papierowym ręczniku.</li>
+        </ol>
+        
+        <h2>Przygotowanie sosu grzybowego:</h2>
+        <ol class="steps-list">
+            <li>Grzyby oczyść i pokrój w plasterki.</li>
+            <li>Cebulę drobno posiekaj i zeszklij na maśle.</li>
+            <li>Dodaj grzyby i smaż na średnim ogniu przez około 10 minut, aż odparują.</li>
+            <li>Posyp grzyby łyżką mąki, wymieszaj i smaż przez minutę.</li>
+            <li>Wlej śmietanę, dopraw solą, pieprzem i tymiankiem.</li>
+            <li>Gotuj na małym ogniu przez około 5 minut, aż sos zgęstnieje.</li>
+        </ol>
+        
+        <div class="tips">
+            <h3>Wskazówki:</h3>
+            <p>• Aby placki były chrupiące z zewnątrz, trzeba dobrze odcisnąć wodę z ziemniaków.</p>
+            <p>• Możesz dodać do placków posiekany czosnek lub świeże zioła dla wzbogacenia smaku.</p>
+            <p>• Placki najlepiej smakują prosto z patelni, podane z gorącym sosem grzybowym.</p>
+        </div>
+    </div>
+    
+    <div style="margin: 30px auto; text-align: center;">
+        <h2>Zdjęcie dekoracji</h2>
+        <img src="/api/placeholder/800/600" alt="Dekoracja JOS" id="decoration-image" style="max-width: 100%; margin-bottom: 20px; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2); border-radius: 8px;">
+        <p style="margin-bottom: 20px;">Dekoracja z podświetlanymi literami "JOS", niebieskimi balonami i girlandą ze zdjęciami.</p>
+        <button class="download-btn" id="download-image" style="margin-bottom: 20px;">Pobierz zdjęcie</button>
+    </div>
+
+    <button class="download-btn" id="download-pdf">Pobierz przepis jako PDF</button>
+    
+    <script>
+        // JavaScript do obsługi interaktywnych elementów
+        document.addEventListener('DOMContentLoaded', function() {
+            const servingsDisplay = document.getElementById('servings-display');
+            const servingsCount = document.getElementById('servings-count');
+            const decreaseBtn = document.getElementById('decrease-servings');
+            const increaseBtn = document.getElementById('increase-servings');
+            const ingredientQuantities = document.querySelectorAll('.quantity');
+            
+            // Obsługa przycisków zmiany liczby porcji
+            decreaseBtn.addEventListener('click', function() {
+                let currentServings = parseInt(servingsDisplay.textContent);
+                if (currentServings > 1) {
+                    currentServings -= 1;
+                    updateServings(currentServings);
+                }
+            });
+            
+            increaseBtn.addEventListener('click', function() {
+                let currentServings = parseInt(servingsDisplay.textContent);
+                if (currentServings < 12) {
+                    currentServings += 1;
+                    updateServings(currentServings);
+                }
+            });
+            
+            function updateServings(newServings) {
+                servingsDisplay.textContent = newServings;
+                servingsCount.textContent = newServings;
+                
+                // Aktualizacja ilości składników
+                ingredientQuantities.forEach(element => {
+                    const baseAmount = parseFloat(element.getAttribute('data-base'));
+                    const newAmount = (baseAmount * newServings / 4).toFixed(1).replace('.0', '');
+                    element.textContent = newAmount;
+                });
+            }
+            
+            // Obsługa pobierania obrazu
+            const downloadImageBtn = document.getElementById('download-image');
+            downloadImageBtn.addEventListener('click', function() {
+                // W prawdziwej implementacji tutaj byłby kod do pobierania prawdziwego obrazu
+                // Ponieważ używamy placeholdera, symulujemy pobieranie
+                
+                // Tworzymy element canvas do pobrania obrazu
+                const img = document.getElementById('decoration-image');
+                const canvas = document.createElement('canvas');
+                canvas.width = 800;
+                canvas.height = 600;
+                const ctx = canvas.getContext('2d');
+                
+                // Wypełniamy canvas jasnym tłem
+                ctx.fillStyle = '#9cdbff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Rysujemy litery JOS
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 5;
+                
+                // J
+                ctx.beginPath();
+                ctx.moveTo(200, 150);
+                ctx.lineTo(300, 150);
+                ctx.lineTo(300, 350);
+                ctx.lineTo(250, 400);
+                ctx.lineTo(200, 350);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                
+                // O
+                ctx.beginPath();
+                ctx.arc(400, 250, 100, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                
+                // S
+                ctx.beginPath();
+                ctx.moveTo(600, 150);
+                ctx.bezierCurveTo(500, 150, 500, 250, 600, 250);
+                ctx.bezierCurveTo(700, 250, 700, 400, 600, 400);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                
+                // Dodajemy tekst
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 20px Arial';
+                ctx.fillText('Dekoracja na przyjęcie', 300, 500);
+                
+                // Generujemy i pobieramy obraz
+                canvas.toBlob(function(blob) {
+                    saveAs(blob, "dekoracja_JOS.png");
+                });
+            });
+            
+            // Obsługa generowania PDF
+            const downloadPDF = document.getElementById('download-pdf');
+            downloadPDF.addEventListener('click', function() {
+                // Tymczasowo ukrywamy elementy, których nie chcemy w PDF
+                const servingsControl = document.querySelector('.servings-control');
+                const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+                const downloadBtn = document.querySelector('.download-btn');
+                
+                // Zapamiętujemy ich status
+                const servingsControlDisplay = servingsControl.style.display;
+                const downloadBtnDisplay = downloadBtn.style.display;
+                const checkboxStatus = Array.from(checkboxes).map(cb => ({ el: cb, display: cb.style.display }));
+                
+                // Ukrywamy
+                servingsControl.style.display = 'none';
+                downloadBtn.style.display = 'none';
+                checkboxes.forEach(cb => { cb.style.display = 'none'; });
+                
+                // Zmiana dla czekboksów w etykietach
+                const checkContainers = document.querySelectorAll('.checkbox-container');
+                checkContainers.forEach(container => {
+                    container.style.display = 'inline';
+                    const checkbox = container.querySelector('input[type="checkbox"]');
+                    if (checkbox) checkbox.style.display = 'none';
+                });
+                
+                const { jsPDF } = window.jspdf;
+                
+                // Tworzymy PDF
+                html2canvas(document.querySelector('.recipe-container')).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const imgProps = pdf.getImageProperties(imgData);
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    
+                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                    pdf.save('Przepis_na_placki_ziemniaczane.pdf');
+                    
+                    // Przywracamy widoczność elementów
+                    servingsControl.style.display = servingsControlDisplay;
+                    downloadBtn.style.display = downloadBtnDisplay;
+                    checkContainers.forEach(container => {
+                        container.style.display = '';
+                    });
+                    checkboxStatus.forEach(item => {
+                        item.el.style.display = item.display;
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>
